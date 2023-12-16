@@ -8,6 +8,7 @@ const {
 } = require("../../models/contacts");
 
 const Joi = require("joi");
+const { updateStatusContact } = require("../../services/db-service");
 
 const addSchema = Joi.object({
   name: Joi.string().required(),
@@ -51,7 +52,7 @@ router.post("/", async (req, res, next) => {
     const validation = addSchema.validate(req.body);
     if (validation.error) {
       const missingField = validation.error.message.split('"')[1];
-
+      console.log(validation.error.message)
       res
         .status(400)
         .json({ message: `missing required ${missingField} field` });
@@ -79,22 +80,34 @@ router.delete("/:contactId", async (req, res, next) => {
 router.put("/:contactId", async (req, res, next) => {
   try {
     const contactId = req.params.contactId;
-    
-    const validation = updateSchema.validate(req.body)
 
-    if(validation.error){
-      res.status(400).json({ message: "missing fields" })
-      return
+    const validation = updateSchema.validate(req.body);
+
+    if (validation.error) {
+      res.status(400).json({ message: "missing fields" });
+      return;
     }
 
-    const updatedContact = await updateContact(contactId, req.body)
-     
+    const updatedContact = await updateContact(contactId, req.body);
 
     Object.keys(updatedContact).length > 0
       ? res.status(200).json({ updatedContact })
       : res.status(404).json({ message: "Not found" });
   } catch (error) {
     next(error);
+  }
+});
+
+router.patch("/:contactId/favorite", async (req, res, next) => {
+  const contactId = req.params.contactId;
+  if (typeof req.body.favorite === "boolean") {
+    const favoriteContact = await updateStatusContact(contactId, req.body);
+
+    favoriteContact
+      ? res.status(200).json({ data: favoriteContact })
+      : res.status(404).json({ message: "Not found" });
+  } else {
+    res.status(400).json({ message: "missing field favorite" });
   }
 });
 
