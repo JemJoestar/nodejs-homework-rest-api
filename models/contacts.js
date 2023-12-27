@@ -1,53 +1,55 @@
-const { findContactById, getAllContacts, deleteContact, createContact, putContact, updateStatusContact } = require("../services/db-service");
-
+const {
+  findContactById,
+  getAllContacts,
+  deleteContact,
+  createContact,
+  putContact,
+  updateStatusContact,
+} = require("../services/db-servises/contacts-db-servise");
 
 // * ✅
-const listContacts = async () => {
-  const contactList = await getAllContacts();
+const listContacts = async (owner, favoriteFilter, limits) => {
+  const contactList = await getAllContacts(owner, favoriteFilter, limits);
 
   return contactList;
 };
 
 // * ✅
-const getContactById = async (contactId) => {
-  const searchedContact = await findContactById(contactId);
+const getContactById = async (contactId, owner) => {
+  const searchedContact = await findContactById(contactId, owner);
 
   return searchedContact;
 };
 
 // * ✅
-const removeContact = async (contactId) => {
-  
-  const deletedContact = await deleteContact(contactId)
-  console.log(deletedContact)
-
+const removeContact = async (contactId, owner) => {
+  const deletedContact = await deleteContact(contactId,owner);
+  console.log(deletedContact);
 
   return deletedContact;
 };
 
 // * ✅
 const addContact = async (body) => {
-  const newContact = await createContact(body)
-  console.log(`newContact:`, newContact)
-
+  const newContact = await createContact(body);
+  console.log(`newContact:`, newContact);
 
   return newContact;
 };
 
 // * ✅
 const updateContact = async (contactId, body) => {
-  const updatedContact = await putContact(contactId, body)
-  console.log(`updatedContact:`, updatedContact)
-  return updatedContact
-
+  const updatedContact = await putContact(contactId, body);
+  console.log(`updatedContact:`, updatedContact);
+  return updatedContact;
 };
 
-//! X 
-const addToFavourites = async (contactId, body) =>{
-  const updatedContact = await updateStatusContact(contactId, body)
+// * ✅
+const addToFavourites = async (contactId, body) => {
+  const updatedContact = await updateStatusContact(contactId, body);
 
-  return updatedContact
-}
+  return updatedContact;
+};
 
 module.exports = {
   listContacts,
@@ -55,5 +57,5 @@ module.exports = {
   removeContact,
   addContact,
   updateContact,
-  addToFavourites
+  addToFavourites,
 };
