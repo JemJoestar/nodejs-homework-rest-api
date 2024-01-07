@@ -1,5 +1,5 @@
 const app = require("./app");
-const { connectDB } = require("./services/db-service");
+const { connectDB } = require("./services/db-servises/db-service");
 
 app.listen(3000, () => {
   console.log("Server running. Use our API on port: 3000");

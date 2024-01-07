@@ -1,16 +1,4 @@
-const { default: mongoose } = require("mongoose");
-
-const connectDB = async () => {
-  try {
-    await mongoose.connect(
-      "mongodb+srv://Jemjoesar:qwertyuiop123456789@contactsapi.swnwnx1.mongodb.net/db-contacts"
-    );
-    console.log("Success");
-  } catch (e) {
-    console.log(e.message);
-    process.exit(1);
-  }
-};
+const { default: mongoose, Schema } = require("mongoose");
 
 const ContactSchema = new mongoose.Schema({
   name: {
@@ -27,6 +15,10 @@ const ContactSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  owner: {
+    type: Schema.Types.ObjectId,
+    ref: "user",
+  },
 });
 
 const Contact = mongoose.model("contact", ContactSchema);
@@ -39,7 +31,8 @@ const saveContact = async (contact) => {
   }
 };
 
-const createContact = async (body) => {
+exports.createContact = async (body) => {
+  console.log(`body:`, body);
   const newContact = new Contact(body);
 
   saveContact(newContact);
@@ -47,23 +40,33 @@ const createContact = async (body) => {
   return newContact;
 };
 
-const getAllContacts = async () => {
-  const contactList = await Contact.find();
+exports.getAllContacts = async (owner, favorite, limits) => {
+  console.log(`favorite:`, favorite);
+  const { page, limit } = limits;
+  const contactList = favorite
+    ? await Contact.find({ owner, favorite })
+        .limit(limit)
+        .skip((page - 1) * limit)
+    : await Contact.find({ owner })
+        .limit(limit)
+        .skip((page - 1) * limit);
   return contactList;
 };
 
-const findContactById = async (contactId) => {
+exports.findContactById = async (contactId) => {
   const contact = await Contact.findById(contactId);
   return contact;
 };
 
-const deleteContact = async (contactId) => {
+exports.deleteContact = async (contactId) => {
   const removedContact = await Contact.findByIdAndDelete(contactId);
   return removedContact;
 };
 
-const putContact = async (contactId, body) => {
+exports.putContact = async (contactId, body) => {
   const contactToUpdate = await Contact.findById(contactId);
+  console.log(`body:`, body);
+  console.log(`contactToUpdate:`, contactToUpdate);
   for (const i in body) {
     contactToUpdate[i] = body[i];
   }
@@ -71,7 +74,7 @@ const putContact = async (contactId, body) => {
   return contactToUpdate;
 };
 
-const updateStatusContact = async (contactId, body) => {
+exports.updateStatusContact = async (contactId, body) => {
   try {
     const contactToUpdate = await Contact.findById(contactId);
     contactToUpdate.favorite = body.favorite;
@@ -80,15 +83,4 @@ const updateStatusContact = async (contactId, body) => {
   } catch (e) {
     return null;
   }
-};
-
-module.exports = {
-  connectDB,
-  createContact,
-  saveContact,
-  getAllContacts,
-  findContactById,
-  deleteContact,
-  putContact,
-  updateStatusContact,
 };
