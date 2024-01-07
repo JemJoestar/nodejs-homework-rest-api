@@ -14,6 +14,9 @@ const UserSchema = new mongoose.Schema({
     required: [true, "Email is required"],
     unique: true,
   },
+  avatar: {
+    type: String
+  },
   subscription: {
     type: String,
     enum: ["starter", "pro", "business"],
@@ -54,3 +57,9 @@ exports.createUser = async (body) => {
   }
   return newUser;
 };
+
+exports.updateAvatar = async (avatarUrl, userId) => {
+    const userToUpdate = await User.findById(userId)
+    userToUpdate.avatar = avatarUrl
+    userToUpdate.save()
+}
