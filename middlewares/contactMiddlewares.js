@@ -16,6 +16,7 @@ exports.protect = async (req, res, next) => {
         if (searchedContact.owner.toString() !== userId) {
           throw new Error("Not autorized");
         }
+        
       } catch (e) {
         searchedContact
           ? res.status(401).json({ msg: e.message })
