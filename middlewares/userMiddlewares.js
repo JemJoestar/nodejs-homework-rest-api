@@ -11,6 +11,7 @@ const { subscriptionsEnum } = require("../constants/subscriptions-enum");
 const { genAvatar } = require("../services/avatar-servise");
 const multer = require("multer");
 const Jimp = require("jimp");
+const { sendVerificationMail } = require("../services/email-servise");
 const uuid = require("uuid").v4;
 
 exports.checkSignupData = async (req, res, next) => {
@@ -36,6 +37,8 @@ exports.checkSignupData = async (req, res, next) => {
 exports.makeDataReady = async (req, res, next) => {
   const newUser = req.body;
 
+  const verificationToken = uuid();
+
   const salt = bcrypt.genSaltSync(10);
   const hash = bcrypt.hashSync(newUser.password, salt);
 
@@ -45,6 +48,8 @@ exports.makeDataReady = async (req, res, next) => {
     newUser.subscription = subscriptionsEnum.STARTER;
   }
 
+  newUser.verificationToken = verificationToken;
+
   req.body = newUser;
   next();
 };
@@ -53,12 +58,18 @@ exports.addUserToDB = async (req, res, next) => {
   const newUser = await createUser(req.body);
 
   newUser.token = await jwtServise.signToken(newUser._id);
+  console.log("dsdsdsdsdsdsdsds");
+  // try {
+  //   await sendVerificationMail(req.body.email, req.body.verificationToken);
+  // } catch (e) {
+  //   console.log(e.message);
+  // }
 
   await newUser.save();
 
   newUser.password = undefined;
 
-  res.status(201).json(newUser);
+  next();
 };
 
 // LOGIN
@@ -72,11 +83,8 @@ exports.checkLoginData = async (req, res, next) => {
 
   try {
     const userFromDb = await findUserByFilter({ email: req.body.email });
-    console.log(`userFromDb:`, userFromDb);
 
     const password = req.body.password;
-
-    console.log(`password:`, password);
 
     const result = await new Promise((resolve, reject) => {
       bcrypt.compare(password, userFromDb.password, (err, result) => {
@@ -163,16 +171,64 @@ exports.uploadUserPhoto = multer({
 
 exports.normalizePhoto = async (req, res, next) => {
   const image = await Jimp.read(req.file.path);
-  await image.resize(250, 250)
+  await image.resize(250, 250);
 
-  await image.write(`./public/avatars/${req.file.filename}`)
+  await image.write(`./public/avatars/${req.file.filename}`);
   req.file.path = `/avatars/${req.file.filename}`;
   next();
 };
 
-exports.saveUserPhoto = async (req, res,next) => {
-  const avatarUrl = req.file.path
-  const userId = req.owner
-  await updateAvatar(avatarUrl, userId)
-  next()
-}
+exports.saveUserPhoto = async (req, res, next) => {
+  const avatarUrl = req.file.path;
+  const userId = req.owner;
+  await updateAvatar(avatarUrl, userId);
+  next();
+};
+
+exports.sendVerifyMailMiddlewar = async (req, res, next) => {
+  const email = req.body.email;
+  try {
+    const user = await findUserByFilter({ email });
+    if (user.verify) {
+      res.status(400).json({ msg: "Verification has already been passed" });
+      return;
+    }
+  } catch (e) {
+    res.status(404).json({ msg: "User not found" });
+    return;
+  }
+
+  const token = req.body.verificationToken;
+  try {
+    await sendVerificationMail(email, token);
+    res.status(200).json({ msg: "Mail successfuly sent" });
+  } catch (e) {
+    res.status(400).json({ msg: "Mail did not sent, please try later" });
+  }
+};
+
+exports.verifyUser = async (req, res, next) => {
+  const token = req.params.verificationToken;
+  try {
+    const user = await findUserByFilter({ verificationToken: token });
+    if (user.verify) {
+      res.status(400).json({ msg: "Verification has already been passed" });
+      return
+    }
+    user.verify = true;
+    user.save();
+    res.status(200).json({ msg: "User virified" });
+  } catch (e) {
+    console.log(e.message);
+    res.status(400).json({ msg: "User not found" });
+  }
+};
+
+exports.checkVerification = async (req, res, next) => {
+  const user = await findUserByFilter({ email: req.body.email });
+  if (user.verify) {
+    next();
+  } else {
+    res.status(400).json({ msg: "Email is not verified" });
+  }
+};
